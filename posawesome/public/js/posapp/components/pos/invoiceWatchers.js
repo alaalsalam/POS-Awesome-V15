@@ -4,19 +4,6 @@ export default {
 	// Watch for customer change and update related data
 	customer() {
 		this.close_payments();
-		if (this.invoice_doc && this.invoice_doc.customer !== undefined) {
-			this.invoice_doc.customer = this.customer;
-
-			// Persist change to existing draft on the backend
-			if (this.invoice_doc.name) {
-				const payload = {
-					name: this.invoice_doc.name,
-					customer: this.customer,
-					doctype: this.invoice_doc.doctype || "Sales Invoice",
-				};
-				this.update_invoice(payload);
-			}
-		}
 		this.eventBus.emit("set_customer", this.customer);
 		this.fetch_customer_details();
 		this.fetch_customer_balance();
