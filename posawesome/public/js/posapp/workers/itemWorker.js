@@ -9,10 +9,12 @@ let db;
 		DexieLib = await import("/assets/posawesome/js/libs/dexie.min.js?v=1");
 	}
 	db = new DexieLib.default("posawesome_offline");
-	db.version(2).stores({
+	db.version(4).stores({
 		keyval: "&key",
 		queue: "&key",
 		cache: "&key",
+		items: "&item_code,item_name,item_group",
+		item_prices: "&[price_list+item_code],price_list,item_code",
 	});
 	try {
 		await db.open();
@@ -25,9 +27,7 @@ const KEY_TABLE_MAP = {
 	offline_invoices: "queue",
 	offline_customers: "queue",
 	offline_payments: "queue",
-	price_list_cache: "cache",
 	item_details_cache: "cache",
-	items_storage: "cache",
 	customer_storage: "cache",
 };
 
@@ -46,12 +46,44 @@ async function persist(key, value) {
 		console.error("Worker persist failed", e);
 	}
 
-	if (typeof localStorage !== "undefined" && key !== "price_list_cache") {
+	if (typeof localStorage !== "undefined") {
 		try {
 			localStorage.setItem(`posa_${key}`, JSON.stringify(value));
 		} catch (err) {
 			console.error("Worker localStorage failed", err);
 		}
+	}
+}
+
+async function bulkPutItems(items) {
+	try {
+		if (!db.isOpen()) {
+			await db.open();
+		}
+		await db.table("items").bulkPut(items);
+	} catch (e) {
+		console.error("Worker bulkPut items failed", e);
+	}
+}
+
+async function bulkPutPrices(priceList, items) {
+        try {
+                if (!priceList) {
+                        return;
+                }
+                if (!db.isOpen()) {
+                        await db.open();
+                }
+		const records = items.map((it) => ({
+			price_list: priceList,
+			item_code: it.item_code,
+			rate: it.rate,
+			price_list_rate: it.price_list_rate || it.rate,
+			timestamp: Date.now(),
+		}));
+		await db.table("item_prices").bulkPut(records);
+	} catch (e) {
+		console.error("Worker bulkPut prices failed", e);
 	}
 }
 
@@ -62,8 +94,8 @@ self.onmessage = async (event) => {
 	const data = event.data || {};
 	if (data.type === "parse_and_cache") {
 		try {
-			const parsed = JSON.parse(data.json);
-			const itemsRaw = parsed.message || parsed;
+			let parsed = JSON.parse(data.json);
+			let itemsRaw = parsed.message || parsed;
 			let items;
 			try {
 				if (typeof structuredClone === "function") {
@@ -77,7 +109,7 @@ self.onmessage = async (event) => {
 				self.postMessage({ type: "error", error: e.message });
 				return;
 			}
-			const trimmed = items.map((it) => ({
+                        let trimmed = items.map((it) => ({
 				item_code: it.item_code,
 				item_name: it.item_name,
 				description: it.description,
@@ -94,19 +126,17 @@ self.onmessage = async (event) => {
 				has_serial_no: it.has_serial_no,
 				has_variants: !!it.has_variants,
 			}));
-			let cache = {};
-			try {
-				if (!db.isOpen()) {
-					await db.open();
-				}
-				const stored = await db.table(tableForKey("price_list_cache")).get("price_list_cache");
-				if (stored && stored.value) cache = stored.value;
-			} catch (e) {
-				console.error("Failed to read cache in worker", e);
-			}
-			cache[data.priceList] = { items: trimmed, timestamp: Date.now() };
-			await persist("price_list_cache", cache);
-			self.postMessage({ type: "parsed", items: trimmed });
+			await bulkPutItems(trimmed);
+			await bulkPutPrices(data.priceList, trimmed);
+			// Clear references to release memory before posting back
+			items = null;
+			itemsRaw = null;
+			data.json = null;
+			parsed = null;
+                       let out = trimmed;
+                       self.postMessage({ type: "parsed", items: out });
+			trimmed.length = 0;
+			trimmed = null;
 		} catch (err) {
 			console.log(err);
 			self.postMessage({ type: "error", error: err.message });
@@ -114,5 +144,8 @@ self.onmessage = async (event) => {
 	} else if (data.type === "persist") {
 		await persist(data.key, data.value);
 		self.postMessage({ type: "persisted", key: data.key });
+	} else if (data.type === "bulk_put_items") {
+		await bulkPutItems(data.items || []);
+		self.postMessage({ type: "items_saved" });
 	}
 };

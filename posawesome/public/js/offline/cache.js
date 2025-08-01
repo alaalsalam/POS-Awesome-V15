@@ -7,6 +7,7 @@ import {
 	tableForKey,
 } from "./core.js";
 import { getAllByCursor } from "./db-utils.js";
+import { clearPriceListCache } from "./items.js";
 import Dexie from "dexie/dist/dexie.mjs";
 
 // Increment this number whenever the cache data structure changes
@@ -25,12 +26,10 @@ export const memory = {
 	customer_balance_cache: {},
 	local_stock_cache: {},
 	stock_cache_ready: false,
-	items_storage: [],
 	customer_storage: [],
 	pos_opening_storage: null,
 	opening_dialog_storage: null,
 	sales_persons_storage: [],
-	price_list_cache: {},
 	item_details_cache: {},
 	tax_template_cache: {},
 	translation_cache: {},
@@ -78,6 +77,9 @@ export const memoryInitPromise = (async () => {
 		if (storedVersion !== CACHE_VERSION) {
 			await forceClearAllCache();
 			memory.cache_version = CACHE_VERSION;
+			if (typeof localStorage !== "undefined") {
+				localStorage.setItem("posa_cache_version", CACHE_VERSION);
+			}
 			persist("cache_version", CACHE_VERSION);
 		} else {
 			memory.cache_version = storedVersion || CACHE_VERSION;
@@ -104,7 +106,7 @@ export function resetOfflineState() {
 }
 
 export function reduceCacheUsage() {
-	memory.price_list_cache = {};
+	clearPriceListCache();
 	memory.item_details_cache = {};
 	memory.uom_cache = {};
 	memory.offers_cache = [];
@@ -113,7 +115,6 @@ export function reduceCacheUsage() {
 	memory.stock_cache_ready = false;
 	memory.coupons_cache = {};
 	memory.item_groups_cache = [];
-	persist("price_list_cache", memory.price_list_cache);
 	persist("item_details_cache", memory.item_details_cache);
 	persist("uom_cache", memory.uom_cache);
 	persist("offers_cache", memory.offers_cache);
@@ -125,34 +126,44 @@ export function reduceCacheUsage() {
 }
 
 // --- Generic getters and setters for cached data ----------------------------
-export function getItemsStorage() {
-	return memory.items_storage || [];
+
+export async function getStoredItems() {
+	try {
+		await checkDbHealth();
+		if (!db.isOpen()) await db.open();
+		const items = await db.table("items").toArray();
+               return items;
+	} catch (e) {
+		console.error("Failed to get stored items", e);
+		return [];
+	}
 }
 
-export function setItemsStorage(items) {
+export async function saveItems(items) {
 	try {
-		memory.items_storage = items.map((it) => ({
-			item_code: it.item_code,
-			item_name: it.item_name,
-			description: it.description,
-			stock_uom: it.stock_uom,
-			image: it.image,
-			item_group: it.item_group,
-			rate: it.rate,
-			price_list_rate: it.price_list_rate,
-			currency: it.currency,
-			item_barcode: it.item_barcode,
-			item_uoms: it.item_uoms,
-			actual_qty: it.actual_qty,
-			has_batch_no: it.has_batch_no,
-			has_serial_no: it.has_serial_no,
-			has_variants: !!it.has_variants,
-		}));
+		await checkDbHealth();
+		if (!db.isOpen()) await db.open();
+		let cleanItems;
+		try {
+			cleanItems = JSON.parse(JSON.stringify(items));
+		} catch (err) {
+			console.error("Failed to serialize items", err);
+			cleanItems = [];
+		}
+		await db.table("items").bulkPut(cleanItems);
 	} catch (e) {
-		console.error("Failed to trim items for storage", e);
-		memory.items_storage = [];
+		console.error("Failed to save items", e);
 	}
-	persist("items_storage", memory.items_storage);
+}
+
+export async function clearStoredItems() {
+	try {
+		await checkDbHealth();
+		if (!db.isOpen()) await db.open();
+		await db.table("items").clear();
+	} catch (e) {
+		console.error("Failed to clear stored items", e);
+	}
 }
 
 export function getCustomerStorage() {
@@ -200,7 +211,14 @@ export function getSalesPersonsStorage() {
 
 export function setSalesPersonsStorage(data) {
 	try {
-		memory.sales_persons_storage = JSON.parse(JSON.stringify(data));
+		let clean;
+		try {
+			clean = JSON.parse(JSON.stringify(data));
+		} catch (err) {
+			console.error("Failed to serialize sales persons", err);
+			clean = [];
+		}
+		memory.sales_persons_storage = clean;
 		persist("sales_persons_storage", memory.sales_persons_storage);
 	} catch (e) {
 		console.error("Failed to set sales persons storage", e);
@@ -213,7 +231,14 @@ export function getOpeningStorage() {
 
 export function setOpeningStorage(data) {
 	try {
-		memory.pos_opening_storage = JSON.parse(JSON.stringify(data));
+		let clean;
+		try {
+			clean = JSON.parse(JSON.stringify(data));
+		} catch (err) {
+			console.error("Failed to serialize opening storage", err);
+			clean = {};
+		}
+		memory.pos_opening_storage = clean;
 		persist("pos_opening_storage", memory.pos_opening_storage);
 	} catch (e) {
 		console.error("Failed to set opening storage", e);
@@ -235,7 +260,14 @@ export function getOpeningDialogStorage() {
 
 export function setOpeningDialogStorage(data) {
 	try {
-		memory.opening_dialog_storage = JSON.parse(JSON.stringify(data));
+		let clean;
+		try {
+			clean = JSON.parse(JSON.stringify(data));
+		} catch (err) {
+			console.error("Failed to serialize opening dialog", err);
+			clean = {};
+		}
+		memory.opening_dialog_storage = clean;
 		persist("opening_dialog_storage", memory.opening_dialog_storage);
 	} catch (e) {
 		console.error("Failed to set opening dialog storage", e);
@@ -255,7 +287,13 @@ export function getTaxTemplate(name) {
 export function setTaxTemplate(name, doc) {
 	try {
 		const cache = memory.tax_template_cache || {};
-		const cleanDoc = JSON.parse(JSON.stringify(doc));
+		let cleanDoc;
+		try {
+			cleanDoc = JSON.parse(JSON.stringify(doc));
+		} catch (err) {
+			console.error("Failed to serialize tax template", err);
+			cleanDoc = doc ? { ...doc } : {};
+		}
 		cache[name] = cleanDoc;
 		memory.tax_template_cache = cache;
 		persist("tax_template_cache", memory.tax_template_cache);
@@ -374,20 +412,20 @@ export async function clearAllCache() {
 	memory.customer_balance_cache = {};
 	memory.local_stock_cache = {};
 	memory.stock_cache_ready = false;
-	memory.items_storage = [];
 	memory.customer_storage = [];
 	memory.items_last_sync = null;
 	memory.customers_last_sync = null;
 	memory.pos_opening_storage = null;
 	memory.opening_dialog_storage = null;
 	memory.sales_persons_storage = [];
-	memory.price_list_cache = {};
 	memory.item_details_cache = {};
 	memory.tax_template_cache = {};
 	memory.item_groups_cache = [];
 	memory.cache_version = CACHE_VERSION;
 	memory.tax_inclusive = false;
 	memory.manual_offline = false;
+
+	await clearPriceListCache();
 
 	persist("cache_version", CACHE_VERSION);
 }
@@ -413,14 +451,12 @@ export async function forceClearAllCache() {
 	memory.customer_balance_cache = {};
 	memory.local_stock_cache = {};
 	memory.stock_cache_ready = false;
-	memory.items_storage = [];
 	memory.customer_storage = [];
 	memory.items_last_sync = null;
 	memory.customers_last_sync = null;
 	memory.pos_opening_storage = null;
 	memory.opening_dialog_storage = null;
 	memory.sales_persons_storage = [];
-	memory.price_list_cache = {};
 	memory.item_details_cache = {};
 	memory.tax_template_cache = {};
 	memory.item_groups_cache = [];
@@ -428,9 +464,16 @@ export async function forceClearAllCache() {
 	memory.tax_inclusive = false;
 	memory.manual_offline = false;
 
+	if (typeof localStorage !== "undefined") {
+		localStorage.setItem("posa_cache_version", CACHE_VERSION);
+	}
+
+	await clearPriceListCache();
+
 	// Delete the IndexedDB database in the background
 	try {
 		await Dexie.delete("posawesome_offline");
+		await db.open();
 		initPersistWorker();
 	} catch (e) {
 		console.error("Failed to clear IndexedDB cache", e);

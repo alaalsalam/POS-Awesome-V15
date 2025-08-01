@@ -15,8 +15,9 @@ export {
 export {
 	memory,
 	memoryInitPromise,
-	getItemsStorage,
-	setItemsStorage,
+	getStoredItems,
+	saveItems,
+	clearStoredItems,
 	getCustomerStorage,
 	setCustomerStorage,
 	getItemsLastSync,
@@ -99,6 +100,9 @@ export {
 	clearPriceListCache,
 	saveItemDetailsCache,
 	getCachedItemDetails,
+	saveItemsBulk,
+	getAllStoredItems,
+	searchStoredItems,
 } from "./items.js";
 
 export { saveItemGroups, getCachedItemGroups, clearItemGroups } from "./item_groups.js";
