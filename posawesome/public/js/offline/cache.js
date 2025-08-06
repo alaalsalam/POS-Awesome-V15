@@ -18,13 +18,19 @@ const ITEM_DETAILS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 export const CACHE_VERSION = 1;
 
 // Queue size limit (can be configured via environment variable)
-const envQueueLimit = parseInt(
-        (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_MAX_QUEUE_ITEMS) ||
-                (typeof process !== "undefined" && process.env && process.env.VITE_MAX_QUEUE_ITEMS) ||
-                "",
-        10,
-);
-export const MAX_QUEUE_ITEMS = Number.isFinite(envQueueLimit) && envQueueLimit > 0 ? envQueueLimit : 500;
+function getEnvVar(key) {
+        if (typeof process !== "undefined" && process.env && process.env[key]) {
+                return process.env[key];
+        }
+        if (typeof globalThis !== "undefined" && globalThis[key]) {
+                return globalThis[key];
+        }
+        return undefined;
+}
+
+const envQueueLimit = parseInt(getEnvVar("VITE_MAX_QUEUE_ITEMS") || "", 10);
+export const MAX_QUEUE_ITEMS =
+        Number.isFinite(envQueueLimit) && envQueueLimit > 0 ? envQueueLimit : 500;
 
 // Memory cache object
 export const memory = {
