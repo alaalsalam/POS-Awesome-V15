@@ -44,7 +44,7 @@
 									<template v-slot:item.closing_amount="props">
 										<v-text-field
 											v-model="props.item.closing_amount"
-											:rules="[max25chars]"
+											:rules="[validateNumber]"
 											:label="frappe._('Edit')"
 											single-line
 											counter
@@ -110,6 +110,7 @@
 </template>
 
 <script>
+/* global __ */
 import format from "../../format";
 export default {
 	mixins: [format],
@@ -138,7 +139,7 @@ export default {
 				sortable: true,
 			},
 		],
-		max25chars: (v) => v.length <= 20 || "Input too long!", // TODO : should validate as number
+		validateNumber: (v) => !isNaN(Number(v)) || "Invalid number",
 		pagination: {},
 	}),
 	watch: {},
