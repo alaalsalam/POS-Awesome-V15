@@ -40,6 +40,7 @@ import POS from "./components/pos/Pos.vue";
 import Payments from "./components/payments/Pay.vue";
 import { useNetworkStore } from "./stores/network";
 import { storeToRefs } from "pinia";
+import { usePosProfileStore } from "./stores/posProfile.js";
 import {
 	getOpeningStorage,
 	getCacheUsageEstimate,
@@ -70,18 +71,31 @@ import {
 } from "./composables/useNetwork.js";
 
 export default {
-	setup() {
-		const networkStore = useNetworkStore();
-		const { networkOnline, serverOnline, serverConnecting, manualOffline } = storeToRefs(networkStore);
-		return { networkStore, networkOnline, serverOnline, serverConnecting, manualOffline };
-	},
-	data: function () {
-		return {
-			page: "POS",
-			// POS Profile data
-			posProfile: {},
-			pendingInvoices: 0,
-			lastInvoiceId: "",
+        setup() {
+                const networkStore = useNetworkStore();
+                const posProfileStore = usePosProfileStore();
+                const {
+                        networkOnline,
+                        serverOnline,
+                        serverConnecting,
+                        manualOffline,
+                } = storeToRefs(networkStore);
+                const { posProfile } = storeToRefs(posProfileStore);
+                return {
+                        networkStore,
+                        posProfileStore,
+                        networkOnline,
+                        serverOnline,
+                        serverConnecting,
+                        manualOffline,
+                        posProfile,
+                };
+        },
+        data: function () {
+                return {
+                        page: "POS",
+                        pendingInvoices: 0,
+                        lastInvoiceId: "",
 
 			// Network status
 			internetReachable: false,
@@ -102,21 +116,26 @@ export default {
 			return this.$theme?.current === "dark";
 		},
 	},
-	watch: {
-		networkOnline(newVal, oldVal) {
-			if (newVal && !oldVal) {
-				this.refreshTaxInclusiveSetting();
-				this.eventBus.emit("network-online");
-				this.handleSyncInvoices();
-			}
-		},
-		serverOnline(newVal, oldVal) {
-			if (newVal && !oldVal) {
-				this.eventBus.emit("server-online");
-				this.handleSyncInvoices();
-			}
-		},
-	},
+        watch: {
+                networkOnline(newVal, oldVal) {
+                        if (newVal && !oldVal) {
+                                this.refreshTaxInclusiveSetting();
+                                this.eventBus.emit("network-online");
+                                this.handleSyncInvoices();
+                        }
+                },
+                serverOnline(newVal, oldVal) {
+                        if (newVal && !oldVal) {
+                                this.eventBus.emit("server-online");
+                                this.handleSyncInvoices();
+                        }
+                },
+                posProfile(newVal) {
+                        if (newVal && navigator.onLine) {
+                                this.refreshTaxInclusiveSetting();
+                        }
+                },
+        },
 	components: {
 		Navbar,
 		POS,
@@ -150,13 +169,13 @@ export default {
 			this.cacheReady = true;
 			checkDbHealth().catch(() => {});
 			// Load POS profile from cache or storage
-			const openingData = getOpeningStorage();
-			if (openingData && openingData.pos_profile) {
-				this.posProfile = openingData.pos_profile;
-				if (navigator.onLine) {
-					await this.refreshTaxInclusiveSetting();
-				}
-			}
+                        const openingData = getOpeningStorage();
+                        if (openingData && openingData.pos_profile) {
+                                this.posProfileStore.registerPosData(openingData);
+                                if (navigator.onLine) {
+                                        await this.refreshTaxInclusiveSetting();
+                                }
+                        }
 
 			if (queueHealthCheck()) {
 				alert("Offline queue is too large. Old entries will be purged.");
@@ -186,20 +205,12 @@ export default {
 			}
 		},
 
-		setupEventListeners() {
-			// Listen for POS profile registration
-			if (this.eventBus) {
-				this.eventBus.on("register_pos_profile", (data) => {
-					this.posProfile = data.pos_profile || {};
-					if (navigator.onLine) {
-						this.refreshTaxInclusiveSetting();
-					}
-				});
-
-				// Track last submitted invoice id
-				this.eventBus.on("set_last_invoice", (invoiceId) => {
-					this.lastInvoiceId = invoiceId;
-				});
+                setupEventListeners() {
+                        if (this.eventBus) {
+                                // Track last submitted invoice id
+                                this.eventBus.on("set_last_invoice", (invoiceId) => {
+                                        this.lastInvoiceId = invoiceId;
+                                });
 
 				// Allow other components to trigger printing
 				this.eventBus.on("print_last_invoice", () => {

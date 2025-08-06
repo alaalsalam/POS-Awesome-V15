@@ -108,48 +108,42 @@ export default {
 		SalesOrders,
 	},
 
-	methods: {
-		create_opening_voucher() {
-			this.dialog = true;
-		},
-		get_pos_setting() {
+        methods: {
+                create_opening_voucher() {
+                        this.dialog = true;
+                },
+                get_pos_setting() {
 			frappe.db.get_doc("POS Settings", undefined).then((doc) => {
 				this.eventBus.emit("set_pos_settings", doc);
 			});
 		},
-		checkLoadingComplete() {
-			if (this.itemsLoaded && this.customersLoaded) {
-				console.info("Loading completed");
-			}
-		},
-	},
+                checkLoadingComplete() {
+                        if (this.itemsLoaded && this.customersLoaded) {
+                                console.info("Loading completed");
+                        }
+                },
+        },
 
-	mounted: function () {
-		this.$nextTick(function () {
-			this.check_opening_entry();
-			this.get_pos_setting();
-			this.eventBus.on("close_opening_dialog", () => {
-				this.dialog = false;
-			});
-			this.eventBus.on("register_pos_data", (data) => {
-				this.pos_profile = data.pos_profile;
-				this.get_offers(this.pos_profile.name, this.pos_profile);
-				this.pos_opening_shift = data.pos_opening_shift;
-				this.eventBus.emit("register_pos_profile", data);
-				console.info("LoadPosProfile");
-			});
-			// When profile is registered directly from composables,
-			// ensure offers are fetched as well
-			this.eventBus.on("register_pos_profile", (data) => {
-				if (data && data.pos_profile) {
-					this.get_offers(data.pos_profile.name, data.pos_profile);
-				}
-			});
+        watch: {
+                pos_profile(newVal) {
+                        if (newVal) {
+                                this.get_offers(newVal.name, newVal);
+                        }
+                },
+        },
+
+        mounted: function () {
+                this.$nextTick(function () {
+                        this.check_opening_entry();
+                        this.get_pos_setting();
+                        this.eventBus.on("close_opening_dialog", () => {
+                                this.dialog = false;
+                        });
                         this.eventBus.on("open_closing_dialog", () => {
                                 this.get_closing_data();
                         });
-			this.eventBus.on("submit_closing_pos", (data) => {
-				this.submit_closing_pos(data);
+                        this.eventBus.on("submit_closing_pos", (data) => {
+                                this.submit_closing_pos(data);
 			});
 
 			this.eventBus.on("items_loaded", () => {
@@ -161,17 +155,14 @@ export default {
 				this.checkLoadingComplete();
 			});
 		});
-	},
-	beforeUnmount() {
-		this.eventBus.off("close_opening_dialog");
-		this.eventBus.off("register_pos_data");
-		this.eventBus.off("register_pos_profile");
-		this.eventBus.off("LoadPosProfile");
+        },
+        beforeUnmount() {
+                this.eventBus.off("close_opening_dialog");
                 this.eventBus.off("open_closing_dialog");
                 this.eventBus.off("submit_closing_pos");
                 this.eventBus.off("items_loaded");
-		this.eventBus.off("customers_loaded");
-	},
+                this.eventBus.off("customers_loaded");
+        },
 	// In the created() or mounted() lifecycle hook
 	created() {
 		// Clean up expired customer balance cache on POS load

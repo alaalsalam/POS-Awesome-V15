@@ -1,4 +1,7 @@
-import { ref, getCurrentInstance } from "vue";
+/* global frappe */
+import { getCurrentInstance } from "vue";
+import { storeToRefs } from "pinia";
+import { usePosProfileStore } from "../stores/posProfile.js";
 import {
     initPromise,
     checkDbHealth,
@@ -12,8 +15,9 @@ export function usePosShift(openDialog) {
     const { proxy } = getCurrentInstance();
     const eventBus = proxy?.eventBus;
 
-    const pos_profile = ref(null);
-    const pos_opening_shift = ref(null);
+    const posProfileStore = usePosProfileStore();
+    const { posProfile: pos_profile, posOpeningShift: pos_opening_shift } =
+        storeToRefs(posProfileStore);
 
     async function check_opening_entry() {
         await initPromise;
@@ -24,9 +28,9 @@ export function usePosShift(openDialog) {
             })
             .then((r) => {
                 if (r.message) {
-                    pos_profile.value = r.message.pos_profile;
-                    pos_opening_shift.value = r.message.pos_opening_shift;
-                    if (pos_profile.value.taxes_and_charges) {
+                    posProfileStore.registerPosData(r.message);
+                    eventBus?.emit("register_pos_profile", r.message);
+                    if (pos_profile.value?.taxes_and_charges) {
                         frappe.call({
                             method: "frappe.client.get",
                             args: {
@@ -43,7 +47,6 @@ export function usePosShift(openDialog) {
                             },
                         });
                     }
-                    eventBus?.emit("register_pos_profile", r.message);
                     eventBus?.emit("set_company", r.message.company);
                     try {
                         frappe.realtime.emit("pos_profile_registered");
@@ -59,8 +62,7 @@ export function usePosShift(openDialog) {
                 } else {
                     const data = getOpeningStorage();
                     if (data) {
-                        pos_profile.value = data.pos_profile;
-                        pos_opening_shift.value = data.pos_opening_shift;
+                        posProfileStore.registerPosData(data);
                         eventBus?.emit("register_pos_profile", data);
                         eventBus?.emit("set_company", data.company);
                         try {
@@ -77,8 +79,7 @@ export function usePosShift(openDialog) {
             .catch(() => {
                 const data = getOpeningStorage();
                 if (data) {
-                    pos_profile.value = data.pos_profile;
-                    pos_opening_shift.value = data.pos_opening_shift;
+                    posProfileStore.registerPosData(data);
                     eventBus?.emit("register_pos_profile", data);
                     eventBus?.emit("set_company", data.company);
                     try {
@@ -114,8 +115,7 @@ export function usePosShift(openDialog) {
             )
             .then((r) => {
                 if (r.message) {
-                    pos_opening_shift.value = null;
-                    pos_profile.value = null;
+                    posProfileStore.clear();
                     clearOpeningStorage();
                     eventBus?.emit("show_message", {
                         title: `POS Shift Closed`,
@@ -126,5 +126,11 @@ export function usePosShift(openDialog) {
             });
     }
 
-    return { pos_profile, pos_opening_shift, check_opening_entry, get_closing_data, submit_closing_pos };
+    return {
+        pos_profile,
+        pos_opening_shift,
+        check_opening_entry,
+        get_closing_data,
+        submit_closing_pos,
+    };
 }
