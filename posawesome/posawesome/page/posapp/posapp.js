@@ -1,12 +1,19 @@
 // Include onscan.js
+/* global frappe, $ */
 
 async function loadOfflineModule() {
 	try {
-		const manifest = await fetch("/assets/posawesome/dist/js/manifest.json").then((r) => r.json());
-		for (const value of Object.values(manifest)) {
-			if (value.isEntry && value.src && value.src.endsWith("offline/index.js")) {
-				return import(`/assets/posawesome/dist/js/${value.file}`);
+		const response = await fetch("/assets/posawesome/dist/js/manifest.json");
+		const contentType = response.headers.get("content-type") || "";
+		if (response.ok && contentType.includes("application/json")) {
+			const manifest = await response.json();
+			for (const value of Object.values(manifest)) {
+				if (value.isEntry && value.src && value.src.endsWith("offline/index.js")) {
+					return import(`/assets/posawesome/dist/js/${value.file}`);
+				}
 			}
+		} else {
+			console.warn(`Failed to load manifest (${response.status})`);
 		}
 	} catch (err) {
 		console.warn("Failed to load offline chunk", err);
@@ -17,6 +24,7 @@ async function loadOfflineModule() {
 frappe.pages["posapp"].on_page_load = async function (wrapper) {
 	await setupLanguage();
 
+	// eslint-disable-next-line no-unused-vars
 	var page = frappe.ui.make_app_page({
 		parent: wrapper,
 		title: "POS Awesome",
