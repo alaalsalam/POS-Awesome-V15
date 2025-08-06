@@ -125,13 +125,12 @@
 <script>
 import format from "../../format";
 import {
-        getOpeningDialogStorage,
-        setOpeningDialogStorage,
-        setOpeningStorage,
-        initPromise,
-        checkDbHealth,
+	getOpeningDialogStorage,
+	setOpeningDialogStorage,
+	setOpeningStorage,
+	initPromise,
+	checkDbHealth,
 } from "../../../offline/index.js";
-import { usePosProfileStore } from "../../stores/posProfile.js";
 
 export default {
 	mixins: [format],
@@ -243,35 +242,34 @@ export default {
 			});
 		},
 
-                submit_dialog() {
-                        if (!this.payments_methods.length || !this.company || !this.pos_profile) {
-                                return;
-                        }
+		submit_dialog() {
+			if (!this.payments_methods.length || !this.company || !this.pos_profile) {
+				return;
+			}
 
-                        this.is_loading = true;
-                        const vm = this;
-                        const posProfileStore = usePosProfileStore();
+			this.is_loading = true;
+			const vm = this;
 
-                        return frappe
-                                .call("posawesome.posawesome.api.shifts.create_opening_voucher", {
-                                        pos_profile: this.pos_profile,
-                                        company: this.company,
-                                        balance_details: this.payments_methods,
-                                })
-                                .then((r) => {
-                                        if (r.message) {
-                                                posProfileStore.registerPosData(r.message);
-                                                vm.eventBus.emit("set_company", r.message.company);
-                                                try {
-                                                        setOpeningStorage(r.message);
-                                                } catch (e) {
-                                                        console.error("Failed to cache opening data", e);
-                                                }
-                                                vm.close_opening_dialog();
-                                                vm.is_loading = false;
-                                        }
-                                });
-                },
+			return frappe
+				.call("posawesome.posawesome.api.shifts.create_opening_voucher", {
+					pos_profile: this.pos_profile,
+					company: this.company,
+					balance_details: this.payments_methods,
+				})
+				.then((r) => {
+					if (r.message) {
+						vm.eventBus.emit("register_pos_data", r.message);
+						vm.eventBus.emit("set_company", r.message.company);
+						try {
+							setOpeningStorage(r.message);
+						} catch (e) {
+							console.error("Failed to cache opening data", e);
+						}
+						vm.close_opening_dialog();
+						vm.is_loading = false;
+					}
+				});
+		},
 
 		go_desk() {
 			frappe.set_route("/");

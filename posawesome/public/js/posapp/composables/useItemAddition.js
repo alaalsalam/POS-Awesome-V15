@@ -1,10 +1,7 @@
-/* global frappe, __ */
-import { nextTick } from "vue";
+import { ref, nextTick } from "vue";
 import _ from "lodash";
-import { usePosProfileStore } from "../stores/posProfile.js";
 
 export function useItemAddition() {
-        const posProfileStore = usePosProfileStore();
 	// Remove item from invoice
 	const removeItem = (item, context) => {
 		const index = context.items.findIndex((el) => el.posa_row_id == item.posa_row_id);
@@ -71,16 +68,14 @@ export function useItemAddition() {
 
 			// Attempt to fetch an explicit rate for this UOM from the active price list
 			try {
-                                const r = await frappe.call({
-                                        method: "posawesome.posawesome.api.items.get_price_for_uom",
-                                        args: {
-                                                item_code: new_item.item_code,
-                                                price_list:
-                                                        (context.get_price_list && context.get_price_list()) ||
-                                                        posProfileStore.posProfile?.selling_price_list,
-                                                uom: new_item.uom,
-                                        },
-                                });
+				const r = await frappe.call({
+					method: "posawesome.posawesome.api.items.get_price_for_uom",
+					args: {
+						item_code: new_item.item_code,
+						price_list: context.get_price_list ? context.get_price_list() : null,
+						uom: new_item.uom,
+					},
+				});
 				if (r.message) {
 					const price = parseFloat(r.message);
 					const baseCurrency = context.price_list_currency || context.pos_profile.currency;
