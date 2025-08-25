@@ -1,3 +1,30 @@
+# [15.4.0](https://github.com/alaalsalam/POS-Awesome-V15/compare/15.3.41...15.4.0) (2025-08-25)
+
+
+### Bug Fixes
+
+* add product bundle support in POS ([#1888](https://github.com/alaalsalam/POS-Awesome-V15/issues/1888)) ([#1889](https://github.com/alaalsalam/POS-Awesome-V15/issues/1889)) ([1ad65d9](https://github.com/alaalsalam/POS-Awesome-V15/commit/1ad65d93fde184dd9d74edfe68d8d480c08674d9))
+* batch returns without invoice and restrict items by profile groups ([#1883](https://github.com/alaalsalam/POS-Awesome-V15/issues/1883)) ([2c20610](https://github.com/alaalsalam/POS-Awesome-V15/commit/2c20610928f5005ef61ebb66850f89d4b34d43f4)), closes [#1881](https://github.com/alaalsalam/POS-Awesome-V15/issues/1881) [#1882](https://github.com/alaalsalam/POS-Awesome-V15/issues/1882)
+* ensure sales return payments are negative ([#1850](https://github.com/alaalsalam/POS-Awesome-V15/issues/1850)) ([#1851](https://github.com/alaalsalam/POS-Awesome-V15/issues/1851)) ([0e0fa46](https://github.com/alaalsalam/POS-Awesome-V15/commit/0e0fa46591c765a27467f466d4d603560d507715))
+* stub get_formatted for offline invoice ([#1848](https://github.com/alaalsalam/POS-Awesome-V15/issues/1848)) ([#1849](https://github.com/alaalsalam/POS-Awesome-V15/issues/1849)) ([4bb42dd](https://github.com/alaalsalam/POS-Awesome-V15/commit/4bb42dd090c95836a69613c207ec52007b6beb9a))
+
+
+### Features
+
+* allow line item name override ([#1862](https://github.com/alaalsalam/POS-Awesome-V15/issues/1862)) ([#1863](https://github.com/alaalsalam/POS-Awesome-V15/issues/1863)) ([6f8b575](https://github.com/alaalsalam/POS-Awesome-V15/commit/6f8b57529a3a38246a3fc1063534943122833bed))
+* Create Invoices as POS Invoices Rather Than Sales Invoice ([#1872](https://github.com/alaalsalam/POS-Awesome-V15/issues/1872)) ([977b29d](https://github.com/alaalsalam/POS-Awesome-V15/commit/977b29dae73e2ec8ff71f8769280fa84b668ff17)), closes [#1867](https://github.com/alaalsalam/POS-Awesome-V15/issues/1867) [#1868](https://github.com/alaalsalam/POS-Awesome-V15/issues/1868) [#1869](https://github.com/alaalsalam/POS-Awesome-V15/issues/1869) [#1870](https://github.com/alaalsalam/POS-Awesome-V15/issues/1870) [#1871](https://github.com/alaalsalam/POS-Awesome-V15/issues/1871)
+* enforce stock availability in POS ([#1852](https://github.com/alaalsalam/POS-Awesome-V15/issues/1852)) ([#1860](https://github.com/alaalsalam/POS-Awesome-V15/issues/1860)) ([402bae3](https://github.com/alaalsalam/POS-Awesome-V15/commit/402bae32cb1a01d58fc4051e1eb670321b9a609f)), closes [#1853](https://github.com/alaalsalam/POS-Awesome-V15/issues/1853) [#1853](https://github.com/alaalsalam/POS-Awesome-V15/issues/1853) [#1855](https://github.com/alaalsalam/POS-Awesome-V15/issues/1855) [#1854](https://github.com/alaalsalam/POS-Awesome-V15/issues/1854) [#1854](https://github.com/alaalsalam/POS-Awesome-V15/issues/1854) [#1856](https://github.com/alaalsalam/POS-Awesome-V15/issues/1856) [#1857](https://github.com/alaalsalam/POS-Awesome-V15/issues/1857) [#1857](https://github.com/alaalsalam/POS-Awesome-V15/issues/1857) [#1858](https://github.com/alaalsalam/POS-Awesome-V15/issues/1858) [#1859](https://github.com/alaalsalam/POS-Awesome-V15/issues/1859)
+* reuse item requests with caching ([#1660](https://github.com/alaalsalam/POS-Awesome-V15/issues/1660)) ([985c871](https://github.com/alaalsalam/POS-Awesome-V15/commit/985c871946c1593f3a904fd90e540f6bb6b5e962))
+* support serial and batch searches ([#1873](https://github.com/alaalsalam/POS-Awesome-V15/issues/1873)) ([#1874](https://github.com/alaalsalam/POS-Awesome-V15/issues/1874)) ([4a0120d](https://github.com/alaalsalam/POS-Awesome-V15/commit/4a0120d61c02f1e6601a9ec88682ea4ad26cc58e))
+
+
+### Reverts
+
+* Revert "chore: configure semantic-release ([#1836](https://github.com/alaalsalam/POS-Awesome-V15/issues/1836)) ([#1837](https://github.com/alaalsalam/POS-Awesome-V15/issues/1837))" ([#1838](https://github.com/alaalsalam/POS-Awesome-V15/issues/1838)) ([21de6f6](https://github.com/alaalsalam/POS-Awesome-V15/commit/21de6f62b772d00d484f580ba29b769558fe85f3))
+* Revert "feat: reuse item requests with caching ([#1660](https://github.com/alaalsalam/POS-Awesome-V15/issues/1660))" ([#1662](https://github.com/alaalsalam/POS-Awesome-V15/issues/1662)) ([7d81660](https://github.com/alaalsalam/POS-Awesome-V15/commit/7d8166054a2a8403a00d133f1ccbaadf20df76be))
+* Revert "Refactor offline structure ([#1547](https://github.com/alaalsalam/POS-Awesome-V15/issues/1547))" ([#1558](https://github.com/alaalsalam/POS-Awesome-V15/issues/1558)) ([94ee8fe](https://github.com/alaalsalam/POS-Awesome-V15/commit/94ee8fe0af929cd405a1e569187e1e4de4b6439a))
+* Revert "Sementic release ([#1841](https://github.com/alaalsalam/POS-Awesome-V15/issues/1841))" ([#1844](https://github.com/alaalsalam/POS-Awesome-V15/issues/1844)) ([f933f38](https://github.com/alaalsalam/POS-Awesome-V15/commit/f933f3861d5460ba2cefc709afa10638cdbca532))
+
 ## [15.8.2](https://github.com/defendicon/POS-Awesome-V15/compare/15.8.1...15.8.2) (2025-08-25)
 
 

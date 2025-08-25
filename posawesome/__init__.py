@@ -8,7 +8,7 @@ except (
 ):  # pragma: no cover - frappe may not be installed during setup
     frappe = None
 
-__version__ = "15.8.2"
+__version__ = "15.4.0"
 
 
 def console(*data):
